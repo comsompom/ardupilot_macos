@@ -92,6 +92,18 @@ list some basic and more used commands as example.
 
     ```
 
+- **Building and running ArduPlane on macOS**
+
+    macOS-specific build and run instructions, plus a run script, are in the **MacOS** folder. See [MacOS/README.md](MacOS/README.md). Short version (from repo root):
+
+    ```sh
+    ./waf configure --board sitl
+    ./waf plane
+    Tools/autotest/sim_vehicle.py -v ArduPlane
+    ```
+
+    Or use the script (macOS only): `MacOS/run_arduplane.sh`
+
 - **Clean the build**
 
     Commands `clean` and `distclean` can be used to clean the objects produced by
