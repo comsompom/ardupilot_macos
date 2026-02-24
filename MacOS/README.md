@@ -1,130 +1,210 @@
-# Building and Running ArduPlane on macOS
+# Running the Full ArduPilot Project on macOS
 
-This document describes how the ArduPilot project is structured and how to build and run **ArduPlane** in SITL (Software-In-The-Loop) on macOS. All commands below are run from the **repository root** (the directory that contains `ArduPlane/`, `MacOS/`, `Tools/`, etc.).
+This folder contains instructions and scripts to **build and run the entire ArduPilot project** (all vehicles) in SITL (Software-In-The-Loop) on macOS. All commands are run from the **repository root** (the directory that contains `ArduPlane/`, `ArduCopter/`, `MacOS/`, `Tools/`, etc.).
 
-## Project structure (relevant to ArduPlane)
+## Contents of the MacOS Folder
 
-- **`ArduPlane/`** – ArduPlane application source: `Plane.cpp`, mode_*.cpp, GCS_MAVLink_Plane.cpp, etc. The build is defined in `ArduPlane/wscript` and produces the `arduplane` binary.
-- **`libraries/`** – Shared libraries: `AP_HAL_SITL` (desktop SITL HAL), `SITL` (simulation models), `AP_TECS`, `AP_L1_Control`, etc. SITL uses the same ArduPlane code as real hardware; only the HAL (hardware abstraction) changes.
-- **`Tools/ardupilotwaf/`** – Waf build logic: `boards.py` (board definitions, including `sitl` and SITLBoard), `toolchain.py` (native toolchain uses clang on macOS).
-- **`Tools/autotest/`** – `sim_vehicle.py` launches SITL and MAVProxy; `arduplane.py` is the ArduPlane autotest suite. `pysim/vehicleinfo.py` defines vehicle/frame options (e.g. `plane`, `plane-elevon`) and waf targets (`bin/arduplane`).
-- **Build output** – For board `sitl`, binaries go to `build/sitl/bin/`, e.g. `build/sitl/bin/arduplane`.
-- **`MacOS/`** – This folder: macOS-specific documentation and the `run_arduplane.sh` script for ArduPlane on macOS.
+| File | Purpose |
+|------|--------|
+| **README.md** (this file) | Instructions to run the whole ArduPilot project on macOS |
+| **run_sitl.sh** | Build and run any vehicle (ArduCopter, ArduPlane, Rover, ArduSub, AntennaTracker, Helicopter, Blimp) |
+| **run_arduplane.sh** | Shortcut for ArduPlane only |
 
-## How ArduPlane runs on macOS (SITL)
+---
 
-1. **Board**: `sitl` – Software-in-the-loop. Uses the **native** toolchain (on macOS, **clang**).
-2. **Binary**: `arduplane` – Same code as for real boards; it links against `AP_HAL_SITL` and the `SITL` library instead of a hardware HAL.
-3. **Simulation**: The SITL layer provides simulated sensors, GPS, and physics (e.g. `SIM_Plane`). No real hardware is needed.
-4. **Launch**: `sim_vehicle.py -v ArduPlane` builds (if needed) and runs `build/sitl/bin/arduplane`, then starts MAVProxy so you can connect a GCS (e.g. Mission Planner, QGroundControl).
+## Quick Start: Run Any Vehicle
 
-macOS is explicitly supported: the CI workflow `.github/workflows/macos_build.yml` builds `sitl` (and other boards) on `macos-latest`, and `libraries/AP_HAL_SITL` contains `__APPLE__` handling where needed (e.g. UART, Scheduler).
+From the repository root:
 
-**Note:** On macOS, SITL is built with clang; the lwIP networking stack is not enabled for clang builds, so some networking-related SITL features may be disabled. Core ArduPlane SITL (simulation + MAVProxy) works without it.
+```bash
+# Run ArduPlane (default frame: plane)
+MacOS/run_sitl.sh ArduPlane
+
+# Run ArduCopter (default frame: quad)
+MacOS/run_sitl.sh ArduCopter
+
+# Run Rover, ArduSub, AntennaTracker, Helicopter, or Blimp
+MacOS/run_sitl.sh Rover
+MacOS/run_sitl.sh ArduSub
+MacOS/run_sitl.sh AntennaTracker
+MacOS/run_sitl.sh Helicopter
+MacOS/run_sitl.sh Blimp
+```
+
+With an optional frame (vehicle-specific):
+
+```bash
+MacOS/run_sitl.sh ArduPlane plane-elevon
+MacOS/run_sitl.sh ArduCopter hexa
+MacOS/run_sitl.sh Rover sailboat
+```
+
+The script will configure SITL, build the chosen vehicle, and start the simulator with MAVProxy so you can connect a GCS (e.g. Mission Planner, QGroundControl).
+
+---
 
 ## Prerequisites (macOS)
 
-1. **Xcode Command Line Tools**  
+1. **Xcode Command Line Tools**
    ```bash
    xcode-select --install
    ```
 
-2. **Homebrew** (for Python, pymavlink, MAVProxy, etc.)  
+2. **Homebrew**  
    Install from https://brew.sh if needed.
 
-3. **ArduPilot environment script** (recommended; installs Python deps, MAVProxy, etc.):  
+3. **ArduPilot environment** (Python, pymavlink, MAVProxy, etc.)  
    From the repository root:
    ```bash
    Tools/environment_install/install-prereqs-mac.sh -y
-   ```  
-   Then open a new terminal or `source ~/.bash_profile` (or `~/.zshrc`).
+   ```
+   Then open a new terminal or run `source ~/.bash_profile` (or `~/.zshrc`).
 
-4. **Submodules**  
+4. **Submodules**
    ```bash
    git submodule update --init --recursive
    ```
 
-## Build ArduPlane (SITL) on macOS
+---
+
+## Building the Whole Project (All Vehicles)
+
+To build **all** ArduPilot SITL binaries (all vehicles) in one go:
+
+```bash
+./waf configure --board sitl
+./waf
+```
+
+Or build the main vehicle binaries only (bin group):
+
+```bash
+./waf configure --board sitl
+./waf bin
+```
+
+This produces (among others):
+
+- `build/sitl/bin/arducopter`
+- `build/sitl/bin/arduplane`
+- `build/sitl/bin/ardurover`
+- `build/sitl/bin/ardusub`
+- `build/sitl/bin/antennatracker`
+- plus helicopter and blimp binaries as applicable.
+
+You only need to run this once (or when you change code). After that, `MacOS/run_sitl.sh <Vehicle>` will use the existing build; it can also rebuild that vehicle if needed.
+
+---
+
+## Building a Single Vehicle
 
 From the repository root:
 
 ```bash
 ./waf configure --board sitl
-./waf plane
+./waf plane      # ArduPlane
+./waf copter     # ArduCopter
+./waf rover      # Rover
+./waf sub        # ArduSub
+./waf antennatracker
+./waf heli       # Helicopter
+./waf blimp      # Blimp
 ```
 
-Or build only the ArduPlane binary:
+---
 
-```bash
-./waf configure --board sitl
-./waf --targets bin/arduplane
-```
+## Running Vehicles (Without the MacOS Script)
 
-The executable will be at **`build/sitl/bin/arduplane`**.
-
-- **Debug build:**  
-  `./waf configure --board sitl --debug` then `./waf plane`
-
-## Run ArduPlane SITL on macOS
-
-**Option A – Using the MacOS run script (recommended)**  
-From the repository root, run the script inside the `MacOS` folder:
-
-```bash
-MacOS/run_arduplane.sh
-```
-
-Optional frame name: `MacOS/run_arduplane.sh plane-elevon`
-
-**Option B – Using sim_vehicle.py directly**  
-From the repository root:
+You can also run SITL directly with `sim_vehicle.py`. From the repository root:
 
 ```bash
 Tools/autotest/sim_vehicle.py -v ArduPlane
+Tools/autotest/sim_vehicle.py -v ArduCopter
+Tools/autotest/sim_vehicle.py -v Rover
+Tools/autotest/sim_vehicle.py -v ArduSub
+Tools/autotest/sim_vehicle.py -v AntennaTracker
+Tools/autotest/sim_vehicle.py -v Helicopter
+Tools/autotest/sim_vehicle.py -v Blimp
 ```
 
-Default frame is `plane`. To use a different frame (e.g. quadplane, plane-elevon):
+With a specific frame:
 
 ```bash
 Tools/autotest/sim_vehicle.py -v ArduPlane -f plane-elevon
+Tools/autotest/sim_vehicle.py -v ArduCopter -f hexa
 ```
 
-**Option C – Run the binary directly**  
-If you already built with the commands above:
+`sim_vehicle.py` will configure and build the right binary if needed (unless you pass `--no-rebuild`).
+
+---
+
+## Vehicles and Default Frames
+
+| Vehicle | Default frame | Example other frames |
+|---------|----------------|----------------------|
+| **ArduCopter** | quad | X, hexa, octa, tri, heli |
+| **ArduPlane** | plane | plane-elevon, plane-vtail, quadplane |
+| **Rover** | rover | balancebot, sailboat, motorboat |
+| **ArduSub** | vectored | — |
+| **AntennaTracker** | tracker | — |
+| **Helicopter** | heli | — |
+| **Blimp** | Blimp | — |
+
+To list all frames for a vehicle:
 
 ```bash
-./build/sitl/bin/arduplane --help
-./build/sitl/bin/arduplane -S
+Tools/autotest/sim_vehicle.py -v ArduPlane --list-frames
+Tools/autotest/sim_vehicle.py -v ArduCopter --list-frames
 ```
 
-For a full sim with MAVProxy and correct parameters, Option A or B is recommended.
+---
 
-## Quick one-liner (after prereqs and submodules)
+## Run Script Reference
 
-From the repo root:
+**MacOS/run_sitl.sh**
+
+- **Usage:** `MacOS/run_sitl.sh <Vehicle> [frame] [-- extra options for sim_vehicle.py]`
+- **Vehicles:** `ArduCopter`, `ArduPlane`, `Rover`, `ArduSub`, `AntennaTracker`, `Helicopter`, `Blimp`
+- **Examples:**
+  - `MacOS/run_sitl.sh ArduPlane`
+  - `MacOS/run_sitl.sh ArduPlane plane-elevon`
+  - `MacOS/run_sitl.sh ArduCopter quad`
+  - `MacOS/run_sitl.sh ArduPlane -- --no-mavproxy`
+
+**MacOS/run_arduplane.sh**
+
+- Shortcut for ArduPlane: `MacOS/run_arduplane.sh` or `MacOS/run_arduplane.sh plane-elevon`
+
+---
+
+## Project Layout (Relevant to Running on macOS)
+
+- **Vehicle apps:** `ArduPlane/`, `ArduCopter/`, `Rover/`, `ArduSub/`, `AntennaTracker/`, `Blimp/`, `Helicopter/` (part of ArduCopter).
+- **Shared libraries:** `libraries/` (e.g. `AP_HAL_SITL`, `SITL`). SITL uses the same vehicle code as real hardware; only the HAL (hardware abstraction) changes.
+- **Build system:** `./waf configure --board sitl` then `./waf` or `./waf <vehicle>`. On macOS the native toolchain uses **clang**.
+- **SITL launcher:** `Tools/autotest/sim_vehicle.py` – builds (if needed) and runs the binary, then MAVProxy.
+- **Build output:** `build/sitl/bin/` – e.g. `arduplane`, `arducopter`, `ardurover`, `ardusub`, `antennatracker`.
+
+---
+
+## One-Liner: Build All and Run One Vehicle
+
+From the repository root (after prerequisites and submodules):
 
 ```bash
-./waf configure --board sitl && ./waf plane && Tools/autotest/sim_vehicle.py -v ArduPlane
+./waf configure --board sitl && ./waf && MacOS/run_sitl.sh ArduPlane
 ```
 
-Or use the MacOS script:
+Or build only that vehicle:
 
 ```bash
-MacOS/run_arduplane.sh
+./waf configure --board sitl && MacOS/run_sitl.sh ArduPlane
 ```
 
-## Summary
+---
 
-| Item | Location / Command |
-|------|--------------------|
-| macOS ArduPlane docs & script | `MacOS/` (this folder) |
-| ArduPlane app code | `ArduPlane/` |
-| SITL HAL (macOS-friendly) | `libraries/AP_HAL_SITL/` |
-| Build config (sitl board) | `Tools/ardupilotwaf/boards.py` (SITLBoard) |
-| Configure | `./waf configure --board sitl` |
-| Build plane | `./waf plane` or `./waf --targets bin/arduplane` |
-| Binary | `build/sitl/bin/arduplane` |
-| Run script (macOS) | `MacOS/run_arduplane.sh` |
-| Run with MAVProxy (direct) | `Tools/autotest/sim_vehicle.py -v ArduPlane` |
+## Note on Networking (macOS SITL)
 
-ArduPlane is supported on macOS via the `sitl` board and native (clang) toolchain; the contents of this `MacOS` folder make it straightforward to build and run ArduPlane on macOS laptops.
+On macOS, SITL is built with clang and the lwIP networking stack is not enabled for clang builds, so some networking-related SITL features may be disabled. Core simulation and MAVProxy for all vehicles work as expected.
+
+These instructions and scripts allow you to run the **entire ArduPilot project** on macOS: build all vehicles or a single vehicle, then run any of them via `MacOS/run_sitl.sh` or `sim_vehicle.py`.

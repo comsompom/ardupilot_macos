@@ -92,17 +92,11 @@ list some basic and more used commands as example.
 
     ```
 
-- **Building and running ArduPlane on macOS**
+- **Building and running ArduPilot on macOS (all vehicles)**
 
-    macOS-specific build and run instructions, plus a run script, are in the **MacOS** folder. See [MacOS/README.md](MacOS/README.md). Short version (from repo root):
+    macOS-specific instructions to build and run the **full ArduPilot project** (ArduCopter, ArduPlane, Rover, ArduSub, AntennaTracker, Helicopter, Blimp) in SITL are in the **MacOS** folder. See [MacOS/README.md](MacOS/README.md).
 
-    ```sh
-    ./waf configure --board sitl
-    ./waf plane
-    Tools/autotest/sim_vehicle.py -v ArduPlane
-    ```
-
-    Or use the script (macOS only): `MacOS/run_arduplane.sh`
+    Build all vehicles: `./waf configure --board sitl` then `./waf` (or `./waf bin`). Run any vehicle (from repo root): `MacOS/run_sitl.sh <Vehicle>` e.g. `MacOS/run_sitl.sh ArduPlane` or `MacOS/run_sitl.sh ArduCopter`. ArduPlane shortcut: `MacOS/run_arduplane.sh`.
 
 - **Clean the build**
 
